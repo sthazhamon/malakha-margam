@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#7A1F2B">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Malakha Margam — Leaderboard</title>
 <style>
 :root{
@@ -288,8 +288,21 @@ function renderAdmin(){
         <button class="btn sm ghost" onclick="undoUI('${s.id}')">↩ Undo last</button>
       </div>
       <div class="row" style="margin-top:10px">
+        <button class="btn sm ghost" onclick="editCountsUI('${s.id}')">✏️ Edit counts</button>
         <button class="btn sm ghost" onclick="renameUI('${s.id}')">Rename</button>
         <button class="btn sm danger" onclick="removeUI('${s.id}')">Remove</button>
+      </div>
+      <div id="ec-${s.id}" style="display:none;margin-top:10px">
+        <div class="statgrid" style="grid-template-columns:repeat(5,1fr)">
+          ${["cards","seraphim","cherubim","pairs","archangel"].map(k=>`
+            <div class="stat"><input type="number" min="0" max="9999" id="ec-${s.id}-${k}" value="${s[k]}"
+              style="border:none;text-align:center;font-weight:700;color:var(--maroon);font-size:1.05rem;padding:2px">
+            <span>${k.toUpperCase()}</span></div>`).join("")}
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn sm gold" onclick="saveCountsUI('${s.id}')">Save counts</button>
+          <button class="btn sm ghost" onclick="document.getElementById('ec-${s.id}').style.display='none'">Cancel</button>
+        </div>
       </div></div></details>`).join("") || `<p class="muted">No children added yet.</p>`}</div>
   <div class="card"><h2 class="sec">Admin</h2><div class="row">
     <button class="btn ghost sm" onclick="exportCsvUI()">Export CSV backup</button>
@@ -342,6 +355,23 @@ function changePinUI(){
   api("changePin",{pin:PIN,newPin:v.trim()}).then(()=>{ PIN=v.trim(); toast("PIN changed"); }).catch(e=>toast(e.message));
 }
 
+function editCountsUI(id){
+  const el = document.getElementById("ec-"+id);
+  el.style.display = el.style.display==="none" ? "block" : "none";
+}
+function saveCountsUI(id){
+  const s = DB.students.find(x=>x.id===id); if(!s) return;
+  const counts = {};
+  for(const k of ["cards","seraphim","cherubim","pairs","archangel"]){
+    const v = parseInt(document.getElementById("ec-"+id+"-"+k).value, 10);
+    if(isNaN(v) || v<0 || v>9999) return toast("Counts must be numbers from 0 to 9999");
+    counts[k] = v;
+  }
+  enqueue("setCounts", {pin:PIN, id:id, counts:counts}, ()=>{
+    Object.assign(s, counts);
+    DB.log.unshift({ t:new Date().toISOString(), id:id, text:"Counts corrected by catechist ✏️" });
+  });
+}
 function exportCsvUI(){
   api("exportCsv",{pin:PIN}).then(r=>{
     const blob = new Blob([r.csv], {type:"text/csv"});
