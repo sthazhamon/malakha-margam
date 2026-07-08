@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7A1F2B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Malakha Margam — Leaderboard</title>
+<style>
+:root{
+  --maroon:#7A1F2B; --maroon-deep:#5E1620; --gold:#B8860B; --gold-l:#D4A93A;
+  --cream:#FDF3DC; --panel:#FFFDF7; --ink:#3A2A20; --ink-soft:#7a6a5c;
+  --line:#EAD9B5; --danger:#b3261e;
+  --serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Noto Serif Malayalam',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--serif);background:var(--cream);color:var(--ink)}
+button{font-family:var(--serif);cursor:pointer}
+#app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+header.mast{padding:calc(12px + env(safe-area-inset-top)) 18px 12px;text-align:center;
+  border-bottom:2px solid var(--gold-l);background:linear-gradient(180deg,#fff9ec,var(--cream))}
+.eyebrow{font-size:.62rem;letter-spacing:.14em;color:var(--gold);font-weight:700;text-transform:uppercase}
+h1.title{color:var(--maroon);font-size:1.9rem;letter-spacing:.06em;margin-top:2px}
+.motto{font-style:italic;color:var(--ink-soft);font-size:.78rem;margin-top:3px}
+main{flex:1;padding:14px 14px 96px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;max-width:560px;margin:0 auto;display:flex;
+  background:var(--maroon);border-top:3px solid var(--gold);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;background:none;border:none;color:#e9cfa9;padding:10px 2px 9px;font-size:.72rem;
+  display:flex;flex-direction:column;gap:2px;align-items:center}
+nav.tabs button .ic{font-size:1.15rem}
+nav.tabs button.on{color:#fff;background:var(--maroon-deep)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+h2.sec{color:var(--maroon);font-size:1.05rem;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.muted{color:var(--ink-soft);font-size:.8rem}
+.btn{border:1.5px solid var(--maroon);background:var(--maroon);color:#fff;border-radius:9px;
+  padding:9px 14px;font-size:.88rem;font-weight:700}
+.btn.ghost{background:transparent;color:var(--maroon)}
+.btn.gold{background:var(--gold);border-color:var(--gold)}
+.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:7px}
+.btn.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input{font-family:var(--serif);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;
+  font-size:.95rem;background:#fff;color:var(--ink);width:100%}
+.notice{border-left:4px solid var(--gold);background:#fff7e2;padding:9px 11px;border-radius:0 9px 9px 0;
+  font-size:.82rem;margin-bottom:12px}
+.sync{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;background:var(--gold);color:#fff;
+  padding:3px 10px;border-radius:14px;font-size:.68rem;font-weight:700;z-index:60;display:none}
+.sync.on{display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--maroon-deep);
+  color:#fff;padding:9px 16px;border-radius:20px;font-size:.82rem;opacity:0;transition:opacity .25s;
+  pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+.spin{text-align:center;padding:40px 0;color:var(--ink-soft)}
+.spin .halo{display:inline-block;width:34px;height:34px;border:3px solid var(--line);
+  border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite;margin-bottom:10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lb-row{display:flex;align-items:center;gap:10px;padding:11px 6px;border:none;border-bottom:1px dashed var(--line);
+  background:none;width:100%;text-align:left}
+.lb-row:last-child{border-bottom:none}
+.rank{width:34px;text-align:center;font-weight:700;color:var(--ink-soft);flex:none}
+.rank.top{font-size:1.25rem}
+.lb-main{flex:1;min-width:0}
+.lb-name{font-weight:700;color:var(--maroon);font-size:.98rem}
+.lb-cls{font-size:.72rem;color:var(--ink-soft)}
+.shelf{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+.shelf .tk{font-size:.72rem;padding:2px 5px;border-radius:5px;border:1px solid var(--line);background:#fff;color:var(--ink-soft)}
+.shelf .tk.angel{color:var(--gold);border-color:var(--gold-l);font-weight:700}
+.shelf .tk.arch{color:#fff;background:var(--maroon);border-color:var(--maroon);font-weight:700}
+.pts{font-weight:800;color:var(--maroon);font-size:1.12rem;text-align:right;flex:none}
+.pts small{display:block;font-weight:400;font-size:.62rem;color:var(--ink-soft)}
+.podium-note{background:var(--maroon);color:#fdf3dc;text-align:center;border-radius:9px;padding:8px 10px;
+  font-size:.78rem;margin-bottom:12px}
+.podium-note b{color:var(--gold-l)}
+.sheet{position:fixed;inset:0;background:rgba(46,20,20,.45);display:flex;align-items:flex-end;z-index:40}
+.sheet .inner{background:var(--panel);width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;
+  max-height:88vh;overflow-y:auto;padding:18px 16px 26px;border-top:3px solid var(--gold)}
+.grab{width:44px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.stageline{display:flex;gap:6px;margin:12px 0}
+.stg{flex:1;text-align:center;border:1.5px solid var(--line);border-radius:9px;padding:8px 3px;background:#fff}
+.stg .n{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--line);color:var(--ink-soft);
+  font-size:.72rem;font-weight:700;line-height:20px;margin-bottom:3px}
+.stg.done{border-color:var(--gold);background:#fff8e4}
+.stg.done .n{background:var(--maroon);color:#fff}
+.stg .lbl{font-size:.6rem;color:var(--ink-soft);display:block}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.stat{background:#fff;border:1px solid var(--line);border-radius:9px;text-align:center;padding:8px 2px}
+.stat b{display:block;color:var(--maroon);font-size:1.25rem}
+.stat span{font-size:.62rem;color:var(--ink-soft)}
+.log li{list-style:none;padding:6px 2px;border-bottom:1px dashed var(--line);display:flex;
+  justify-content:space-between;gap:8px;font-size:.78rem}
+.log time{color:var(--ink-soft);font-size:.68rem;white-space:nowrap}
+.adm-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.adm-actions .btn{padding:7px 4px;font-size:.74rem}
+.pill{background:#fff;border:1px solid var(--gold-l);color:var(--gold);border-radius:20px;
+  padding:2px 10px;font-size:.68rem;font-weight:700}
+details.adm-st{border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:8px}
+details.adm-st summary{padding:10px 12px;font-weight:700;color:var(--maroon);cursor:pointer;
+  display:flex;justify-content:space-between;list-style:none}
+details.adm-st summary::-webkit-details-marker{display:none}
+details.adm-st .body{padding:0 12px 12px}
+.mod{display:flex;gap:12px;align-items:center}
+.mod .mi{font-size:1.6rem}
+.offline{background:#fff7e2;border:1px solid var(--gold-l);border-radius:9px;padding:8px 11px;
+  font-size:.78rem;color:var(--ink-soft);text-align:center;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="mast">
+    <div class="eyebrow">St John's Malankara Syrian Catholic Sunday School</div>
+    <h1 class="title">മാലാഖ മാർഗം</h1>
+    <div class="motto">Sing like an angel · Pray like an angel · Praise like an angel</div>
+  </header>
+  <main id="main"><div class="spin"><span class="halo"></span><div>Opening the leaderboard…</div></div></main>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="toast" id="toast"></div>
+  <div class="sync" id="sync">Syncing…</div>
+</div>
+
+<script>
+/* ====== CONFIGURE THIS ONE LINE ======
+   Paste your Apps Script Web App URL (the one ending in /exec): */
+const API_URL = "https://malakha-margam-api.sherry-ittcannon.workers.dev/";
+/* ===================================== */
+
+const POINTS = { card:1, angel:10, pair:5, archangel:25 };
+let DB = { students:[], log:[], hasPin:true, updatedAt:null };
+let PIN = null, tab = "board", sheetStudent = null, busy = false, offline = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toast = m => { const t=$("#toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2400); };
+
+/* API bridge: POST with no custom headers = simple request, no CORS preflight */
+async function api(action, payload){
+  const res = await fetch(API_URL, { method:"POST", body: JSON.stringify({ action, ...payload }) });
+  const out = await res.json();
+  if(!out.ok) throw new Error(out.error || "Request failed");
+  return out.data;
+}
+/* ---- optimistic writes: update screen instantly, sync in background ---- */
+const WIN_TEXT = { card:"Won a Rhema Card 🎴", seraphim:"Won a Seraphim ✧",
+  cherubim:"Won a Cherubim ✧", pair:"Completed an Angel Pair ⚭ (+5 bonus)",
+  archangel:"Earned the ARCHANGEL 👑" };
+const WIN_FIELD = { card:"cards", seraphim:"seraphim", cherubim:"cherubim", pair:"pairs", archangel:"archangel" };
+let pending = 0, queue = Promise.resolve();
+function updateSync(){ const el=$("#sync"); if(el) el.classList.toggle("on", pending>0); }
+function enqueue(action, payload, localFn, afterAck){
+  localFn(); cacheDB(); render();
+  pending++; updateSync();
+  queue = queue
+    .then(()=>api(action, payload))
+    .then(r=>{ if(afterAck) afterAck(r); cacheDB(); })
+    .catch(async e=>{
+      toast((e.message||"Sync failed") + " — reloading");
+      try{ DB = await api("getData"); cacheDB(); render(); }catch(err){}
+    })
+    .finally(()=>{ pending--; updateSync(); });
+}
+function winUI(id, kind){
+  enqueue("win", {pin:PIN, id:id, kind:kind}, ()=>{
+    const s = DB.students.find(x=>x.id===id); if(!s) return;
+    s[WIN_FIELD[kind]] = (s[WIN_FIELD[kind]]||0) + 1;
+    DB.log.unshift({ t:new Date().toISOString(), id:id, text:WIN_TEXT[kind] });
+  });
+}
+function undoUI(id){
+  const e = DB.log.find(x=>x.id===id);
+  const kind = e && Object.keys(WIN_TEXT).find(k=>WIN_TEXT[k]===e.text);
+  if(!kind) return toast("Nothing to undo");
+  enqueue("undoLast", {pin:PIN, id:id}, ()=>{
+    const s = DB.students.find(x=>x.id===id); if(!s) return;
+    s[WIN_FIELD[kind]] = Math.max(0, (s[WIN_FIELD[kind]]||0) - 1);
+    DB.log.splice(DB.log.indexOf(e), 1);
+  });
+}
+function cacheDB(){ try{ localStorage.setItem("mm-cache", JSON.stringify(DB)); }catch(e){} }
+function readCache(){ try{ const c=localStorage.getItem("mm-cache"); return c?JSON.parse(c):null; }catch(e){ return null; } }
+
+const pts = s => s.cards*POINTS.card + (s.seraphim+s.cherubim)*POINTS.angel
+              + s.pairs*POINTS.pair + s.archangel*POINTS.archangel;
+const ranked = () => [...DB.students].sort((a,b)=> pts(b)-pts(a) || b.archangel-a.archangel
+              || b.pairs-a.pairs || a.name.localeCompare(b.name));
+const stageOf = s => s.archangel>0?4 : s.pairs>=1?3 : (s.seraphim+s.cherubim)>=1?2 : s.cards>=1?1:0;
+const logFor = id => DB.log.filter(e=>e.id===id);
+
+const MODULES = [
+  { id:"board", label:"Leaderboard", icon:"🏆", render: renderBoard },
+  { id:"admin", label:"Admin", icon:"🗝️", render: renderAdmin },
+  { id:"more",  label:"More", icon:"✦", render: renderMore },
+];
+function go(id){ tab=id; sheetStudent=null; render(); }
+function render(){
+  $("#tabs").innerHTML = MODULES.map(m=>
+    `<button class="${tab===m.id?"on":""}" onclick="go('${m.id}')"><span class="ic">${m.icon}</span>${m.label}</button>`).join("");
+  $("#main").innerHTML = (offline?`<div class="offline">Showing the last saved leaderboard — reconnect to refresh.</div>`:"")
+    + MODULES.find(m=>m.id===tab).render();
+  if(sheetStudent) $("#main").insertAdjacentHTML("beforeend", renderSheet(sheetStudent));
+}
+
+function renderBoard(){
+  if(!DB.students.length) return `<div class="card" style="text-align:center;padding:34px 16px">
+    <div style="font-size:2.2rem">😇</div>
+    <p style="margin:8px 0 4px;font-weight:700;color:var(--maroon)">The journey hasn't begun yet</p>
+    <p class="muted">Once the catechist adds the children and their first Rhema Cards, the leaderboard appears here.</p></div>`;
+  const medals=["🥇","🥈","🥉"];
+  return `<div class="podium-note">✦ Top 3 at term-end receive <b>Mother Mary figurines</b> at the closing ceremony ✦</div>
+  <div class="card">${ranked().map((s,i)=>`
+    <button class="lb-row" onclick="openSheet('${s.id}')">
+      <span class="rank ${i<3?"top":""}">${i<3?medals[i]:i+1}</span>
+      <span class="lb-main">
+        <span class="lb-name">${esc(s.name)}</span> <span class="lb-cls">${esc(s.cls)}</span>
+        <span class="shelf">
+          <span class="tk">🎴 ${s.cards}</span>
+          ${s.seraphim?`<span class="tk angel">✧ Seraphim ×${s.seraphim}</span>`:""}
+          ${s.cherubim?`<span class="tk angel">✧ Cherubim ×${s.cherubim}</span>`:""}
+          ${s.pairs?`<span class="tk angel">⚭ Pair ×${s.pairs}</span>`:""}
+          ${s.archangel?`<span class="tk arch">👑 Archangel</span>`:""}
+        </span>
+      </span>
+      <span class="pts">${pts(s)}<small>PTS</small></span>
+    </button>`).join("")}</div>
+  <p class="muted" style="text-align:center">Updated ${DB.updatedAt?new Date(DB.updatedAt).toLocaleTimeString():""}
+    · <button class="btn ghost sm" onclick="refresh()">Refresh</button></p>`;
+}
+async function refresh(){
+  try{ DB = await api("getData"); cacheDB(); offline=false; render(); toast("Refreshed"); }
+  catch(e){ toast("Refresh failed — check connection"); }
+}
+function openSheet(id){ sheetStudent=id; render(); }
+function closeSheet(){ sheetStudent=null; render(); }
+
+function renderSheet(id){
+  const s = DB.students.find(x=>x.id===id); if(!s) return "";
+  const st = stageOf(s);
+  const stages=[[1,"Rhema Cards"],[2,"First Angel"],[3,"Angel Pair"],[4,"Archangel"]];
+  const lg = logFor(id);
+  return `<div class="sheet" onclick="if(event.target===this)closeSheet()"><div class="inner">
+    <div class="grab"></div>
+    <h2 style="color:var(--maroon)">${esc(s.name)}</h2>
+    <p class="muted">${esc(s.cls)} · ${pts(s)} points</p>
+    <div class="stageline">${stages.map(([n,l])=>
+      `<div class="stg ${st>=n?"done":""}"><span class="n">${n}</span><span class="lbl">${l}</span></div>`).join("")}</div>
+    <div class="statgrid">
+      <div class="stat"><b>${s.cards}</b><span>CARDS</span></div>
+      <div class="stat"><b>${s.seraphim}</b><span>SERAPHIM</span></div>
+      <div class="stat"><b>${s.cherubim}</b><span>CHERUBIM</span></div>
+      <div class="stat"><b>${s.pairs}</b><span>PAIRS</span></div>
+    </div>
+    ${s.archangel?`<p style="text-align:center;color:var(--gold);font-weight:700">👑 Archangel — every verse learned!</p>`:""}
+    <h2 class="sec" style="margin-top:10px">Recent wins</h2>
+    <ul class="log">${lg.length? lg.slice(0,12).map(e=>
+      `<li><span>${esc(e.text)}</span><time>${new Date(e.t).toLocaleDateString()}</time></li>`).join("")
+      : `<li><span class="muted">No wins recorded yet — the first Rhema Card is waiting!</span></li>`}</ul>
+    <p style="text-align:center;margin-top:14px"><button class="btn ghost" onclick="closeSheet()">Close</button></p>
+  </div></div>`;
+}
+
+function renderAdmin(){
+  if(PIN===null){
+    const first = !DB.hasPin;
+    return `<div class="card">
+      <h2 class="sec">${first?"Set the admin PIN":"Catechist sign-in"}</h2>
+      <p class="muted" style="margin-bottom:10px">${first
+        ?"First time here — choose a PIN. Only people with this PIN can update wins."
+        :"Enter the admin PIN to update cards, angels and figurines."}</p>
+      <div class="row"><input type="password" id="pin" inputmode="numeric" placeholder="PIN" style="flex:1">
+      <button class="btn" onclick="pinGo(${first})">${first?"Set PIN":"Unlock"}</button></div></div>`;
+  }
+  return `
+  <div class="notice">Wins save to the Google Sheet for everyone. The Sheet itself stays private to the owner.</div>
+  <div class="card"><h2 class="sec">Add a child</h2>
+    <div class="row"><input id="nm" placeholder="Name" style="flex:2"><input id="cl" placeholder="Class" style="flex:1">
+    <button class="btn" onclick="addStudentUI()">Add</button></div></div>
+  <div class="card"><h2 class="sec">Update wins <span class="pill">${DB.students.length} children</span></h2>
+    ${ranked().map(s=>`<details class="adm-st">
+      <summary><span>${esc(s.name)} <span class="muted">· ${esc(s.cls)}</span></span><span>${pts(s)} pts</span></summary>
+      <div class="body"><div class="adm-actions">
+        <button class="btn sm gold" onclick="winUI('${s.id}','card')">+1 🎴 Card</button>
+        <button class="btn sm" onclick="winUI('${s.id}','seraphim')">+ Seraphim</button>
+        <button class="btn sm" onclick="winUI('${s.id}','cherubim')">+ Cherubim</button>
+        <button class="btn sm" onclick="winUI('${s.id}','pair')">+ ⚭ Pair bonus</button>
+        <button class="btn sm" onclick="archUI('${s.id}')">👑 Archangel</button>
+        <button class="btn sm ghost" onclick="undoUI('${s.id}')">↩ Undo last</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm ghost" onclick="renameUI('${s.id}')">Rename</button>
+        <button class="btn sm danger" onclick="removeUI('${s.id}')">Remove</button>
+      </div></div></details>`).join("") || `<p class="muted">No children added yet.</p>`}</div>
+  <div class="card"><h2 class="sec">Admin</h2><div class="row">
+    <button class="btn ghost sm" onclick="exportCsvUI()">Export CSV backup</button>
+    <button class="btn ghost sm" onclick="changePinUI()">Change PIN</button>
+    <button class="btn sm danger" onclick="PIN=null;render()">Lock admin</button></div></div>`;
+}
+async function pinGo(first){
+  const v = $("#pin").value.trim();
+  if(v.length<4) return toast("PIN must be at least 4 characters");
+  try{
+    if(first){ await api("setInitialPin",{pin:v}); PIN=v; DB.hasPin=true; toast("Admin PIN set"); }
+    else if(await api("verifyPin",{pin:v})){ PIN=v; toast("Welcome, catechist"); }
+    else return toast("Wrong PIN");
+  }catch(e){ return toast(e.message); }
+  render();
+}
+function addStudentUI(){
+  const n=$("#nm").value.trim(), c=$("#cl").value.trim();
+  if(!n) return toast("Enter a name");
+  const tempId = "tmp" + Date.now();
+  enqueue("addStudent", {pin:PIN,name:n,cls:c}, ()=>{
+    DB.students.push({ id:tempId, name:n, cls:c, cards:0, seraphim:0, cherubim:0, pairs:0, archangel:0 });
+    DB.log.unshift({ t:new Date().toISOString(), id:tempId, text:"Joined Malakha Margam" });
+  }, r=>{ if(r && r.id){
+    const t = DB.students.find(x=>x.id===tempId); if(t) t.id = r.id;
+    DB.log.forEach(e=>{ if(e.id===tempId) e.id = r.id; });
+    render();
+  }});
+}
+function archUI(id){
+  const s=DB.students.find(x=>x.id===id);
+  if(s && s.pairs<2 && !confirm("Fewer than 2 pairs recorded. Award the Archangel anyway?")) return;
+  winUI(id, "archangel");
+}
+function renameUI(id){
+  const s=DB.students.find(x=>x.id===id); if(!s) return;
+  const n=prompt("Name:", s.name); if(n===null) return;
+  const c=prompt("Class:", s.cls);
+  enqueue("renameStudent", {pin:PIN,id:id,name:n,cls:c===null?s.cls:c}, ()=>{
+    s.name = n.trim() || s.name; if(c!==null) s.cls = c.trim();
+  });
+}
+function removeUI(id){
+  const s=DB.students.find(x=>x.id===id);
+  if(s && confirm(`Remove ${s.name} and all their wins?`))
+    enqueue("removeStudent", {pin:PIN,id:id}, ()=>{ DB.students = DB.students.filter(x=>x.id!==id); });
+}
+function changePinUI(){
+  const v=prompt("New PIN (min 4 characters):"); if(!v||v.length<4) return;
+  api("changePin",{pin:PIN,newPin:v.trim()}).then(()=>{ PIN=v.trim(); toast("PIN changed"); }).catch(e=>toast(e.message));
+}
+
+function exportCsvUI(){
+  api("exportCsv",{pin:PIN}).then(r=>{
+    const blob = new Blob([r.csv], {type:"text/csv"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "malakha-margam-" + new Date().toISOString().slice(0,10) + ".csv";
+    a.click(); URL.revokeObjectURL(a.href);
+    toast("Backup downloaded");
+  }).catch(e=>toast(e.message||"Export failed"));
+}
+function renderMore(){
+  return `
+  <div class="card mod"><span class="mi">📖</span><div>
+    <b style="color:var(--maroon)">Question Bank</b>
+    <p class="muted">Catechism questions by class — will live in a QuestionBank tab of the same Sheet.</p></div>
+    <span class="pill">SOON</span></div>
+  <div class="card mod"><span class="mi">☀️</span><div>
+    <b style="color:var(--maroon)">Daily Quiz</b>
+    <p class="muted">A verse-a-day quiz that awards bonus Rhema Cards — same Sheet, new tab.</p></div>
+    <span class="pill">SOON</span></div>
+  <div class="card"><h2 class="sec">About</h2>
+    <p class="muted">Malakha Margam — the collecting game of St John's Malankara Syrian Catholic Sunday School.
+    Earn Rhema Cards, win Seraphim &amp; Cherubim, complete pairs within two Sundays, rise to the Archangel.
+    Top 3 receive Mother Mary figurines at the closing ceremony.</p>
+    <p class="muted" style="margin-top:8px;font-style:italic">"Let the church reverberate with a chorus of praise"</p></div>`;
+}
+
+/* ---------- boot ---------- */
+(async function(){
+  if(API_URL.startsWith("PASTE_")){
+    $("#main").innerHTML = `<div class="card"><h2 class="sec">Setup needed</h2>
+      <p class="muted">Open index.html and paste your Apps Script /exec URL into the API_URL line at the top of the script.</p></div>`;
+    $("#tabs").innerHTML=""; return;
+  }
+  const cached = readCache();
+  if(cached){ DB = cached; offline = true; render(); }
+  try{ DB = await api("getData"); cacheDB(); offline = false; }
+  catch(e){
+    if(!cached){ $("#main").innerHTML = `<div class="card"><p class="muted">Couldn't reach the leaderboard — check your connection and reload.</p></div>`; return; }
+  }
+  render();
+  if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} }
+})();
+</script>
+</body>
+</html>

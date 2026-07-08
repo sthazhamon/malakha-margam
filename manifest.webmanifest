@@ -1,0 +1,14 @@
+{
+  "name": "Malakha Margam — Leaderboard",
+  "short_name": "Malakha Margam",
+  "description": "The collecting game of St John's Malankara Syrian Catholic Sunday School",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FDF3DC",
+  "theme_color": "#7A1F2B",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
