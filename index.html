@@ -101,27 +101,6 @@ details.adm-st summary{padding:10px 12px;font-weight:700;color:var(--maroon);cur
   display:flex;justify-content:space-between;list-style:none}
 details.adm-st summary::-webkit-details-marker{display:none}
 details.adm-st .body{padding:0 12px 12px}
-.langtog{display:flex;gap:0;border:1.5px solid var(--gold-l);border-radius:20px;overflow:hidden}
-.langtog button{border:none;background:#fff;color:var(--gold);padding:5px 14px;font-size:.78rem;font-weight:700}
-.langtog button.on{background:var(--gold);color:#fff}
-.qcard{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--panel);
-  border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer}
-.qcard .qi{font-size:1.5rem}
-.qcard b{color:var(--maroon);font-size:1rem}
-.qbest{margin-left:auto;flex:none;font-size:.7rem;color:var(--gold);font-weight:700;text-align:right}
-.qprog{height:6px;background:#f0e6cc;border-radius:3px;overflow:hidden;margin:10px 0 14px}
-.qprog i{display:block;height:100%;background:var(--gold);transition:width .3s}
-.qtext{font-size:1.02rem;font-weight:700;color:var(--ink);line-height:1.45;margin-bottom:14px}
-.qopt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);
-  border-radius:10px;padding:11px 12px;margin-bottom:8px;font-size:.92rem;color:var(--ink);line-height:1.4}
-.qopt:disabled{opacity:1;color:var(--ink)}
-.qopt.correct{border-color:#2e7d32;background:#e8f5e9;font-weight:700}
-.qopt.wrong{border-color:var(--danger);background:#fdecea}
-.qopt.dim{opacity:.55}
-.qverdict{border-radius:10px;padding:10px 12px;margin:10px 0;font-size:.9rem;font-weight:700}
-.qverdict.good{background:#e8f5e9;color:#2e7d32}
-.qverdict.bad{background:#fdecea;color:var(--danger)}
-.qverdict small{display:block;font-weight:400;color:var(--ink-soft);margin-top:4px;font-size:.8rem}
 .mod{display:flex;gap:12px;align-items:center}
 .mod .mi{font-size:1.6rem}
 .offline{background:#fff7e2;border:1px solid var(--gold-l);border-radius:9px;padding:8px 11px;
@@ -141,7 +120,6 @@ details.adm-st .body{padding:0 12px 12px}
   <div class="sync" id="sync">Syncing…</div>
 </div>
 
-<script src="quiz-data.js"></script>
 <script>
 /* ====== CONFIGURE THIS ONE LINE ======
    Paste your Apps Script Web App URL (the one ending in /exec): */
@@ -212,7 +190,6 @@ const logFor = id => DB.log.filter(e=>e.id===id);
 
 const MODULES = [
   { id:"board", label:"Leaderboard", icon:"🏆", render: renderBoard },
-  { id:"quiz",  label:"Quiz", icon:"📖", render: renderQuiz },
   { id:"admin", label:"Admin", icon:"🗝️", render: renderAdmin },
   { id:"more",  label:"More", icon:"✦", render: renderMore },
 ];
@@ -405,100 +382,12 @@ function exportCsvUI(){
     toast("Backup downloaded");
   }).catch(e=>toast(e.message||"Export failed"));
 }
-/* ---------- Logos Quiz preparatory module ---------- */
-let LANG = "en";
-try{ LANG = localStorage.getItem("mm-lang") || "en"; }catch(e){}
-let QZ = { qi:null, i:0, score:0, picked:null };
-const QD = () => (window.QUIZ_DATA || []);
-function setLang(l){ LANG = l; try{ localStorage.setItem("mm-lang", l); }catch(e){} render(); }
-function bestScores(){ try{ return JSON.parse(localStorage.getItem("mm-quiz-best")||"{}"); }catch(e){ return {}; } }
-function saveBest(id, score, total){
-  const b = bestScores();
-  if(!(id in b) || score > b[id].s){ b[id] = { s:score, t:total };
-    try{ localStorage.setItem("mm-quiz-best", JSON.stringify(b)); }catch(e){} }
-}
-function startQuiz(qi){ QZ = { qi:qi, i:0, score:0, picked:null }; render(); }
-function quitQuiz(){ QZ = { qi:null, i:0, score:0, picked:null }; render(); }
-function pickAns(oi){
-  if(QZ.picked!==null) return;
-  QZ.picked = oi;
-  const q = QD()[QZ.qi].questions[QZ.i];
-  if(oi === q.a) QZ.score++;
-  render();
-}
-function nextQ(){
-  const quiz = QD()[QZ.qi];
-  if(QZ.i + 1 >= quiz.questions.length){ QZ.i = quiz.questions.length; saveBest(quiz.id, QZ.score, quiz.questions.length); }
-  else QZ.i++;
-  QZ.picked = null;
-  render();
-}
-function langTog(){
-  return `<span class="langtog"><button class="${LANG==="en"?"on":""}" onclick="setLang('en')">English</button><button class="${LANG==="ml"?"on":""}" onclick="setLang('ml')">മലയാളം</button></span>`;
-}
-function renderQuiz(){
-  const data = QD();
-  if(!data.length) return `<div class="card"><p class="muted">Quiz data not loaded — make sure quiz-data.js is uploaded next to index.html.</p></div>`;
-  if(QZ.qi===null){
-    const b = bestScores();
-    return `<div class="podium-note">✦ Logos Quiz ${new Date().getFullYear()} preparation — പഠനഭാഗം: Ruth, Ecclesiastes, 1 Samuel, St. John, Galatians ✦</div>
-    <div class="row" style="justify-content:space-between;margin-bottom:12px">
-      <h2 class="sec" style="flex:1;margin:0">Practice quizzes</h2>${langTog()}
-    </div>
-    ${data.map((qz,i)=>`<button class="qcard" onclick="startQuiz(${i})">
-      <span class="qi">📖</span>
-      <span><b>${esc(qz.title[LANG])}</b><br><span class="muted">${qz.questions.length} questions · EN + മലയാളം</span></span>
-      <span class="qbest">${b[qz.id]?`BEST<br>${b[qz.id].s}/${b[qz.id].t}`:""}</span>
-    </button>`).join("")}
-    <p class="muted" style="text-align:center;margin-top:10px">Answer each question to see the correct answer with its Bible reference. Scores stay on this phone only.</p>`;
-  }
-  const quiz = data[QZ.qi], total = quiz.questions.length;
-  if(QZ.i >= total){
-    const pct = QZ.score/total;
-    const msg = pct===1 ? "🌟 Perfect! An Archangel-level score!" :
-      pct>=0.7 ? "😇 Wonderful — keep revising and it will be perfect!" :
-      "📖 Good start — read the portion again and try once more!";
-    return `<div class="card" style="text-align:center;padding:28px 16px">
-      <div style="font-size:2.4rem">🎯</div>
-      <h2 style="color:var(--maroon);margin:8px 0 4px">${QZ.score} / ${total}</h2>
-      <p class="muted" style="margin-bottom:6px">${esc(quiz.title[LANG])}</p>
-      <p style="margin-bottom:16px">${msg}</p>
-      <div class="row" style="justify-content:center">
-        <button class="btn gold" onclick="startQuiz(${QZ.qi})">Try again</button>
-        <button class="btn ghost" onclick="quitQuiz()">All quizzes</button>
-      </div></div>`;
-  }
-  const q = quiz.questions[QZ.i];
-  const answered = QZ.picked !== null;
-  return `<div class="row" style="justify-content:space-between;margin-bottom:4px">
-    <button class="btn ghost sm" onclick="quitQuiz()">← Quizzes</button>${langTog()}
-  </div>
-  <p class="muted" style="margin:8px 0 2px">${esc(quiz.title[LANG])} · Question ${QZ.i+1} of ${total} · Score ${QZ.score}</p>
-  <div class="qprog"><i style="width:${Math.round(100*QZ.i/total)}%"></i></div>
-  <div class="card">
-    <div class="qtext">${esc(q.q[LANG])}</div>
-    ${q.opts.map((o,oi)=>{
-      let cls = "qopt";
-      if(answered){
-        if(oi===q.a) cls += " correct";
-        else if(oi===QZ.picked) cls += " wrong";
-        else cls += " dim";
-      }
-      return `<button class="${cls}" ${answered?"disabled":""} onclick="pickAns(${oi})">${String.fromCharCode(65+oi)}. ${esc(o[LANG])}</button>`;
-    }).join("")}
-    ${answered ? (QZ.picked===q.a
-      ? `<div class="qverdict good">✓ Correct!<small>${esc(q.ref[LANG])}</small></div>`
-      : `<div class="qverdict bad">✗ Wrong — correct answer: ${String.fromCharCode(65+q.a)}. ${esc(q.opts[q.a][LANG])}<small>${esc(q.ref[LANG])}</small></div>`) : ""}
-    ${answered ? `<button class="btn gold" style="width:100%" onclick="nextQ()">${QZ.i+1>=total?"See my score":"Next question →"}</button>` : ""}
-  </div>`;
-}
-
 function renderMore(){
   return `
   <div class="card mod"><span class="mi">📖</span><div>
-    <b style="color:var(--maroon)">Logos Quiz Preparation</b>
-    <p class="muted">Practice quizzes in English & മലയാളം from this year’s portions — open the Quiz tab below.</p></div>
-    <span class="pill" style="color:#2e7d32;border-color:#2e7d32">LIVE</span></div>
+    <b style="color:var(--maroon)">Question Bank</b>
+    <p class="muted">Catechism questions by class — will live in a QuestionBank tab of the same Sheet.</p></div>
+    <span class="pill">SOON</span></div>
   <div class="card mod"><span class="mi">☀️</span><div>
     <b style="color:var(--maroon)">Daily Quiz</b>
     <p class="muted">A verse-a-day quiz that awards bonus Rhema Cards — same Sheet, new tab.</p></div>
