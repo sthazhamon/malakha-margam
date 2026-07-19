@@ -145,7 +145,7 @@ details.adm-st .body{padding:0 12px 12px}
 <script>
 /* ====== CONFIGURE THIS ONE LINE ======
    Paste your Apps Script Web App URL (the one ending in /exec): */
-const API_URL = "https://malakha-margam-api.sherry-ittcannon.workers.dev/";
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";
 /* ===================================== */
 
 const POINTS = { card:1, angel:10, pair:5, archangel:25 };
@@ -418,16 +418,27 @@ function saveBest(id, score, total){
     try{ localStorage.setItem("mm-quiz-best", JSON.stringify(b)); }catch(e){} }
 }
 function startQuiz(qi){ QZ = { qi:qi, i:0, score:0, picked:null }; render(); }
+function startMixed(){
+  const all = [];
+  QD().forEach(qz=>qz.questions.forEach(q=>all.push(q)));
+  for(let i=all.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [all[i],all[j]]=[all[j],all[i]]; }
+  QZ = { qi:"mix", i:0, score:0, picked:null, qs: all.slice(0, Math.min(20, all.length)) };
+  render();
+}
+function currentQuiz(){
+  if(QZ.qi==="mix") return { id:"mix", title:{en:"Mixed Practice", ml:"സമ്മിശ്ര പരിശീലനം"}, questions: QZ.qs };
+  return QD()[QZ.qi];
+}
 function quitQuiz(){ QZ = { qi:null, i:0, score:0, picked:null }; render(); }
 function pickAns(oi){
   if(QZ.picked!==null) return;
   QZ.picked = oi;
-  const q = QD()[QZ.qi].questions[QZ.i];
+  const q = currentQuiz().questions[QZ.i];
   if(oi === q.a) QZ.score++;
   render();
 }
 function nextQ(){
-  const quiz = QD()[QZ.qi];
+  const quiz = currentQuiz();
   if(QZ.i + 1 >= quiz.questions.length){ QZ.i = quiz.questions.length; saveBest(quiz.id, QZ.score, quiz.questions.length); }
   else QZ.i++;
   QZ.picked = null;
@@ -445,14 +456,31 @@ function renderQuiz(){
     <div class="row" style="justify-content:space-between;margin-bottom:12px">
       <h2 class="sec" style="flex:1;margin:0">Practice quizzes</h2>${langTog()}
     </div>
-    ${data.map((qz,i)=>`<button class="qcard" onclick="startQuiz(${i})">
-      <span class="qi">📖</span>
-      <span><b>${esc(qz.title[LANG])}</b><br><span class="muted">${qz.questions.length} questions · EN + മലയാളം</span></span>
-      <span class="qbest">${b[qz.id]?`BEST<br>${b[qz.id].s}/${b[qz.id].t}`:""}</span>
-    </button>`).join("")}
+    <button class="qcard" style="border-color:var(--gold)" onclick="startMixed()">
+      <span class="qi">🎲</span>
+      <span><b>${LANG==="ml"?"സമ്മിശ്ര പരിശീലനം":"Mixed Practice"}</b><br>
+      <span class="muted">20 random questions from all ${data.reduce((n,z)=>n+z.questions.length,0)} in the bank</span></span>
+      <span class="qbest">${b["mix"]?`BEST<br>${b["mix"].s}/${b["mix"].t}`:""}</span>
+    </button>
+    ${(()=>{
+      const groups = [];
+      data.forEach((qz,i)=>{
+        const key = (qz.book?qz.book.en:qz.title.en);
+        let g = groups.find(x=>x.key===key);
+        if(!g){ g = { key, label: qz.book||qz.title, items: [] }; groups.push(g); }
+        g.items.push([qz,i]);
+      });
+      return groups.map(g=>`
+        <h2 class="sec" style="margin-top:14px">${esc(g.label[LANG])}</h2>
+        ${g.items.map(([qz,i])=>`<button class="qcard" onclick="startQuiz(${i})">
+          <span class="qi">📖</span>
+          <span><b>${esc(qz.title[LANG])}</b><br><span class="muted">${qz.questions.length} questions · EN + മലയാളം</span></span>
+          <span class="qbest">${b[qz.id]?`BEST<br>${b[qz.id].s}/${b[qz.id].t}`:""}</span>
+        </button>`).join("")}`).join("");
+    })()}
     <p class="muted" style="text-align:center;margin-top:10px">Answer each question to see the correct answer with its Bible reference. Scores stay on this phone only.</p>`;
   }
-  const quiz = data[QZ.qi], total = quiz.questions.length;
+  const quiz = currentQuiz(), total = quiz.questions.length;
   if(QZ.i >= total){
     const pct = QZ.score/total;
     const msg = pct===1 ? "🌟 Perfect! An Archangel-level score!" :
@@ -464,7 +492,7 @@ function renderQuiz(){
       <p class="muted" style="margin-bottom:6px">${esc(quiz.title[LANG])}</p>
       <p style="margin-bottom:16px">${msg}</p>
       <div class="row" style="justify-content:center">
-        <button class="btn gold" onclick="startQuiz(${QZ.qi})">Try again</button>
+        <button class="btn gold" onclick="${QZ.qi==='mix'?'startMixed()':'startQuiz('+QZ.qi+')'}">Try again</button>
         <button class="btn ghost" onclick="quitQuiz()">All quizzes</button>
       </div></div>`;
   }
