@@ -1,5 +1,5 @@
 /* Malakha Margam service worker — cache the shell, never the API */
-const CACHE = "mm-shell-v5";
+const CACHE = "mm-shell-v8";
 const SHELL = ["./", "./index.html", "./quiz-data.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-512-maskable.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

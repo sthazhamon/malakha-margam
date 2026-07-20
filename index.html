@@ -42,7 +42,7 @@ h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .btn.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
 .btn:disabled{opacity:.45}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-input{font-family:var(--serif);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;
+input,select{font-family:var(--serif);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;
   font-size:.95rem;background:#fff;color:var(--ink);width:100%}
 .notice{border-left:4px solid var(--gold);background:#fff7e2;padding:9px 11px;border-radius:0 9px 9px 0;
   font-size:.82rem;margin-bottom:12px}
@@ -169,6 +169,13 @@ const WIN_TEXT = { card:"Won a Rhema Card 🎴", seraphim:"Won a Seraphim ✧",
   cherubim:"Won a Cherubim ✧", pair:"Completed an Angel Pair ⚭ (+5 bonus)",
   archangel:"Earned the ARCHANGEL 👑" };
 const WIN_FIELD = { card:"cards", seraphim:"seraphim", cherubim:"cherubim", pair:"pairs", archangel:"archangel" };
+const CARD_REASONS = [
+  "Proper standing",
+  "Reciting of prayers loudly",
+  "Coming on time in Sunday school",
+  "Answering questions in group class",
+  "Scoring good marks in exams",
+];
 let pending = 0, queue = Promise.resolve();
 function updateSync(){ const el=$("#sync"); if(el) el.classList.toggle("on", pending>0); }
 function enqueue(action, payload, localFn, afterAck){
@@ -183,16 +190,35 @@ function enqueue(action, payload, localFn, afterAck){
     })
     .finally(()=>{ pending--; updateSync(); });
 }
-function winUI(id, kind){
-  enqueue("win", {pin:PIN, id:id, kind:kind}, ()=>{
+function winUI(id, kind, reason, given, date){
+  const t = date ? new Date(date + "T00:00:00.000Z").toISOString() : new Date().toISOString();
+  const text = WIN_TEXT[kind] + (reason ? " \u2014 " + reason : "");
+  const entry = { t:t, id:id, text:text,
+                  given: kind==="card" ? (given?1:0) : null, rid:null };
+  enqueue("win", {pin:PIN, id:id, kind:kind, reason:reason||undefined, given: kind==="card" ? (given?1:0) : undefined, date: date||undefined}, ()=>{
     const s = DB.students.find(x=>x.id===id); if(!s) return;
     s[WIN_FIELD[kind]] = (s[WIN_FIELD[kind]]||0) + 1;
-    DB.log.unshift({ t:new Date().toISOString(), id:id, text:WIN_TEXT[kind] });
-  });
+    DB.log.unshift(entry);
+  }, r=>{ if(r && r.rid) entry.rid = r.rid; render(); });
+}
+function markGivenUI(rid){
+  const e = DB.log.find(x=>x.rid===rid); if(!e) return;
+  enqueue("markGiven", {pin:PIN, rid:rid}, ()=>{ e.given = 1; });
+}
+function cardPanelUI(id){
+  const el = document.getElementById("cr-"+id);
+  el.style.display = el.style.display==="none" ? "block" : "none";
+}
+function awardCardUI(id){
+  const sel = document.getElementById("cr-"+id+"-sel");
+  const giv = document.getElementById("cr-"+id+"-giv").checked;
+  const dt = document.getElementById("cr-"+id+"-dt").value;
+  winUI(id, "card", sel.value, giv, dt);
+  document.getElementById("cr-"+id).style.display="none";
 }
 function undoUI(id){
   const e = DB.log.find(x=>x.id===id);
-  const kind = e && Object.keys(WIN_TEXT).find(k=>WIN_TEXT[k]===e.text);
+  const kind = e && Object.keys(WIN_TEXT).find(k=> e.text===WIN_TEXT[k] || e.text.startsWith(WIN_TEXT[k]+" \u2014 "));
   if(!kind) return toast("Nothing to undo");
   enqueue("undoLast", {pin:PIN, id:id}, ()=>{
     const s = DB.students.find(x=>x.id===id); if(!s) return;
@@ -277,7 +303,7 @@ function renderSheet(id){
     ${s.archangel?`<p style="text-align:center;color:var(--gold);font-weight:700">👑 Archangel — every verse learned!</p>`:""}
     <h2 class="sec" style="margin-top:10px">Recent wins</h2>
     <ul class="log">${lg.length? lg.slice(0,12).map(e=>
-      `<li><span>${esc(e.text)}</span><time>${new Date(e.t).toLocaleDateString()}</time></li>`).join("")
+      `<li><span>${esc(e.text)}${e.given===0?' <span class="pill" style="font-size:.6rem;padding:1px 7px">card pending</span>':""}</span><time>${new Date(e.t).toLocaleDateString()}</time></li>`).join("")
       : `<li><span class="muted">No wins recorded yet — the first Rhema Card is waiting!</span></li>`}</ul>
     <p style="text-align:center;margin-top:14px"><button class="btn ghost" onclick="closeSheet()">Close</button></p>
   </div></div>`;
@@ -294,8 +320,21 @@ function renderAdmin(){
       <div class="row"><input type="password" id="pin" inputmode="numeric" placeholder="PIN" style="flex:1">
       <button class="btn" onclick="pinGo(${first})">${first?"Set PIN":"Unlock"}</button></div></div>`;
   }
-  return `
-  <div class="notice">Wins save to the Google Sheet for everyone. The Sheet itself stays private to the owner.</div>
+  const pending = DB.log.filter(e=>e.given===0);
+  const pendingHtml = pending.length ? `
+  <div class="card" style="border-color:var(--gold);background:#fff8e4">
+    <h2 class="sec">🎴 Cards to hand over <span class="pill">${pending.length} pending</span></h2>
+    ${pending.map(e=>{
+      const st = DB.students.find(x=>x.id===e.id);
+      return `<div class="row" style="justify-content:space-between;border-bottom:1px dashed var(--line);padding:7px 0">
+        <span style="flex:1;font-size:.85rem"><b style="color:var(--maroon)">${esc(st?st.name:"(removed)")}</b>
+          <span class="muted">${esc(e.text.split(" \u2014 ")[1]||"")} · ${new Date(e.t).toLocaleDateString()}</span></span>
+        ${e.rid?`<button class="btn sm gold" onclick="markGivenUI(${e.rid})">Given ✓</button>`:`<span class="muted" style="font-size:.7rem">syncing…</span>`}
+      </div>`; }).join("")}
+    <p class="muted" style="margin-top:8px">These children earned Rhema Cards in the app but haven't received the physical card yet.</p>
+  </div>` : "";
+  return pendingHtml + `
+  <div class="notice">Wins save for everyone instantly. Award cards as they happen — hand-outs can follow.</div>
   <div class="card"><h2 class="sec">Add a child</h2>
     <div class="row"><input id="nm" placeholder="Name" style="flex:2"><input id="cl" placeholder="Class" style="flex:1">
     <button class="btn" onclick="addStudentUI()">Add</button></div></div>
@@ -303,12 +342,26 @@ function renderAdmin(){
     ${ranked().map(s=>`<details class="adm-st">
       <summary><span>${esc(s.name)} <span class="muted">· ${esc(s.cls)}</span></span><span>${pts(s)} pts</span></summary>
       <div class="body"><div class="adm-actions">
-        <button class="btn sm gold" onclick="winUI('${s.id}','card')">+1 🎴 Card</button>
+        <button class="btn sm gold" onclick="cardPanelUI('${s.id}')">+1 🎴 Card</button>
         <button class="btn sm" onclick="winUI('${s.id}','seraphim')">+ Seraphim</button>
         <button class="btn sm" onclick="winUI('${s.id}','cherubim')">+ Cherubim</button>
         <button class="btn sm" onclick="winUI('${s.id}','pair')">+ ⚭ Pair bonus</button>
         <button class="btn sm" onclick="archUI('${s.id}')">👑 Archangel</button>
         <button class="btn sm ghost" onclick="undoUI('${s.id}')">↩ Undo last</button>
+      </div>
+      <div id="cr-${s.id}" style="display:none;margin-top:10px;background:#fff8e4;border:1px solid var(--gold-l);border-radius:10px;padding:10px">
+        <p class="muted" style="margin-bottom:6px">Reason for this Rhema Card:</p>
+        <select id="cr-${s.id}-sel">${CARD_REASONS.map(r=>`<option>${esc(r)}</option>`).join("")}</select>
+        <p class="muted" style="margin:8px 0 4px">Date the card was won:</p>
+        <input type="date" id="cr-${s.id}-dt" value="${new Date().toISOString().slice(0,10)}"
+          max="${new Date(Date.now()+86400000).toISOString().slice(0,10)}">
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.85rem">
+          <input type="checkbox" id="cr-${s.id}-giv" style="width:auto"> Physical card handed over (usually next Sunday)
+        </label>
+        <div class="row" style="margin-top:8px">
+          <button class="btn sm gold" onclick="awardCardUI('${s.id}')">Award card</button>
+          <button class="btn sm ghost" onclick="document.getElementById('cr-${s.id}').style.display='none'">Cancel</button>
+        </div>
       </div>
       <div class="row" style="margin-top:10px">
         <button class="btn sm ghost" onclick="editCountsUI('${s.id}')">✏️ Edit counts</button>
